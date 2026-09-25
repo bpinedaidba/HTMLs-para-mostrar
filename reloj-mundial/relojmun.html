@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reloj Mundial por Continentes</title>
+
+  <style>
+    :root{
+      --bg:#f5f7fb;
+      --surface:#ffffff;
+      --surface-soft:#f8fafc;
+      --text:#172033;
+      --muted:#6b7280;
+      --line:#e5eaf1;
+      --shadow:0 10px 30px rgba(15,23,42,.08);
+      --radius:22px;
+    }
+
+    *{ box-sizing:border-box; }
+
+    html,body{
+      margin:0;
+      padding:0;
+      width:100%;
+      min-height:100%;
+      font-family:"Segoe UI", Inter, Arial, sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+
+    body{
+      padding:20px;
+    }
+
+    .world-clock{
+      width:min(1500px,100%);
+      margin:0 auto;
+    }
+
+    .hero{
+      position:relative;
+      overflow:hidden;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:24px;
+      padding:28px 30px;
+      margin-bottom:18px;
+      border:1px solid rgba(255,255,255,.75);
+      border-radius:28px;
+      background:
+        radial-gradient(circle at 90% 20%, rgba(56,189,248,.16), transparent 24%),
+        radial-gradient(circle at 70% 100%, rgba(99,102,241,.15), transparent 28%),
+        linear-gradient(135deg,#ffffff 0%,#f8fbff 100%);
+      box-shadow:var(--shadow);
+    }
+
+    .hero::after{
+      content:"";
+      position:absolute;
+      width:210px;
+      height:210px;
+      right:-80px;
+      top:-95px;
+      border-radius:50%;
+      border:28px solid rgba(37,99,235,.055);
+    }
+
+    .eyebrow{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      margin-bottom:8px;
+      color:#2563eb;
+      font-size:12px;
+      font-weight:800;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+    }
+
+    .eyebrow-dot{
+      width:8px;
+      height:8px;
+      border-radius:50%;
+      background:#2563eb;
+      box-shadow:0 0 0 5px rgba(37,99,235,.10);
+    }
+
+    h1{
+      margin:0;
+      font-size:clamp(26px,3vw,42px);
+      line-height:1.05;
+      letter-spacing:-.04em;
+    }
+
+    .subtitle{
+      margin:10px 0 0;
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.55;
+    }
+
+    .local-box{
+      position:relative;
+      z-index:1;
+      min-width:245px;
+      padding:16px 18px;
+      border:1px solid #e6ecf4;
+      border-radius:18px;
+      background:rgba(255,255,255,.82);
+      backdrop-filter:blur(8px);
+      text-align:right;
+    }
+
+    .local-label{
+      margin-bottom:4px;
+      color:var(--muted);
+      font-size:11px;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+
+    .local-time{
+      font-size:27px;
+      font-weight:800;
+      letter-spacing:-.04em;
+      font-variant-numeric:tabular-nums;
+    }
+
+    .local-date{
+      margin-top:3px;
+      color:var(--muted);
+      font-size:12px;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:16px;
+    }
+
+    .continent{
+      --accent:#2563eb;
+      --accent-soft:#eff6ff;
+      min-width:0;
+      padding:18px;
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      background:var(--surface);
+      box-shadow:0 7px 22px rgba(15,23,42,.055);
+      transition:transform .2s ease, box-shadow .2s ease;
+    }
+
+    .continent:hover{
+      transform:translateY(-2px);
+      box-shadow:0 14px 34px rgba(15,23,42,.09);
+    }
+
+    .continent[data-continent="north"]{ --accent:#2563eb; --accent-soft:#eff6ff; }
+    .continent[data-continent="south"]{ --accent:#0f9f76; --accent-soft:#ecfdf5; }
+    .continent[data-continent="europe"]{ --accent:#7c3aed; --accent-soft:#f5f3ff; }
+    .continent[data-continent="asia"]{ --accent:#db7c0b; --accent-soft:#fff7ed; }
+    .continent[data-continent="africa"]{ --accent:#d14343; --accent-soft:#fff1f2; }
+    .continent[data-continent="oceania"]{ --accent:#0891b2; --accent-soft:#ecfeff; }
+
+    .continent-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:14px;
+    }
+
+    .continent-title{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width:0;
+    }
+
+    .continent-icon{
+      display:grid;
+      place-items:center;
+      width:38px;
+      height:38px;
+      flex:0 0 38px;
+      border-radius:12px;
+      background:var(--accent-soft);
+      color:var(--accent);
+      font-size:19px;
+    }
+
+    .continent-name{
+      font-size:16px;
+      font-weight:800;
+      letter-spacing:-.02em;
+    }
+
+    .continent-meta{
+      margin-top:2px;
+      color:var(--muted);
+      font-size:11px;
+    }
+
+    .live-pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      flex:0 0 auto;
+      padding:6px 9px;
+      border-radius:999px;
+      background:#f8fafc;
+      border:1px solid #e7ebf0;
+      color:#64748b;
+      font-size:10px;
+      font-weight:800;
+      text-transform:uppercase;
+      letter-spacing:.06em;
+    }
+
+    .live-pill::before{
+      content:"";
+      width:6px;
+      height:6px;
+      border-radius:50%;
+      background:#22c55e;
+      box-shadow:0 0 0 4px rgba(34,197,94,.10);
+    }
+
+    .cities{
+      display:grid;
+      gap:9px;
+    }
+
+    .city{
+      position:relative;
+      overflow:hidden;
+      display:grid;
+      grid-template-columns:minmax(0,1fr) auto;
+      align-items:center;
+      gap:14px;
+      padding:14px;
+      border:1px solid #edf0f4;
+      border-radius:15px;
+      background:var(--surface-soft);
+    }
+
+    .city::before{
+      content:"";
+      position:absolute;
+      left:0;
+      top:0;
+      bottom:0;
+      width:3px;
+      background:var(--accent);
+      opacity:.8;
+    }
+
+    .city-name{
+      margin:0;
+      font-size:14px;
+      font-weight:800;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .city-zone{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      margin-top:4px;
+      color:var(--muted);
+      font-size:11px;
+    }
+
+    .day-state{
+      width:7px;
+      height:7px;
+      border-radius:50%;
+      background:#f59e0b;
+    }
+
+    .day-state.night{
+      background:#6366f1;
+    }
+
+    .time-wrap{
+      text-align:right;
+      white-space:nowrap;
+    }
+
+    .city-time{
+      font-size:21px;
+      line-height:1;
+      font-weight:800;
+      letter-spacing:-.035em;
+      font-variant-numeric:tabular-nums;
+    }
+
+    .city-date{
+      margin-top:5px;
+      color:var(--muted);
+      font-size:10px;
+      text-transform:capitalize;
+    }
+
+    .footer-note{
+      margin:14px 4px 0;
+      color:#8a94a4;
+      font-size:10px;
+      text-align:right;
+    }
+
+    @media (max-width:1100px){
+      .grid{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+    }
+
+    @media (max-width:720px){
+      body{ padding:12px; }
+
+      .hero{
+        align-items:flex-start;
+        flex-direction:column;
+        padding:22px;
+      }
+
+      .local-box{
+        width:100%;
+        min-width:0;
+        text-align:left;
+      }
+
+      .grid{ grid-template-columns:1fr; }
+    }
+
+    @media (max-width:390px){
+      .city{
+        grid-template-columns:1fr;
+        gap:8px;
+      }
+
+      .time-wrap{
+        text-align:left;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="world-clock">
+    <section class="hero">
+      <div>
+        <div class="eyebrow">
+          <span class="eyebrow-dot"></span>
+          Hora global en tiempo real
+        </div>
+
+        <h1>Reloj Mundial</h1>
+        <p class="subtitle">
+          Consulta rápidamente la hora actual en ciudades clave de cada continente.
+          Los relojes se actualizan automáticamente cada segundo.
+        </p>
+      </div>
+
+      <div class="local-box">
+        <div class="local-label">Tu hora local</div>
+        <div class="local-time" id="localTime">--:--:--</div>
+        <div class="local-date" id="localDate">--</div>
+      </div>
+    </section>
+
+    <section class="grid">
+
+      <!-- AMÉRICA DEL NORTE -->
+      <article class="continent" data-continent="north">
+        <div class="continent-head">
+          <div class="continent-title">
+            <div class="continent-icon">◉</div>
+            <div>
+              <div class="continent-name">América del Norte</div>
+              <div class="continent-meta">Centroamérica incluida</div>
+            </div>
+          </div>
+          <div class="live-pill">En vivo</div>
+        </div>
+
+        <div class="cities">
+          <div class="city" data-zone="America/Guatemala">
+            <div>
+              <div class="city-name">Ciudad de Guatemala</div>
+              <div class="city-zone"><span class="day-state"></span><span class="zone-label">Guatemala</span></div>
+            </div>
+            <div class="time-wrap">
+              <div class="city-time">--:--:--</div>
+              <div class="city-date">--</div>
+            </div>
+          </div>
+
+          <div class="city" data-zone="America/New_York">
+            <div>
+              <div class="city-name">Nueva York</div>
+              <div class="city-zone"><span class="day-state"></span><span class="zone-label">Estados Unidos</span></div>
+            </div>
+            <div class="time-wrap">
+              <div class="city-time">--:--:--</div>
+              <div class="city-date">--</div>
+            </div>
+          </div>
+
+          <div class="city" data-zone="America/Los_Angeles">
+            <div>
+              <div class="city-name">Los Ángeles</div>
+              <div class="city-zone"><span class="day-state"></span><span class="zone-label">Estados Unidos</span></div>
+            </div>
+            <div class="time-wrap">
+              <div class="city-time">--:--:--</div>
+              <div class="city-date">--</div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- AMÉRICA DEL SUR -->
+      <article class="continent" data-continent="south">
+        <div class="continent-head">
+          <div class="continent-title">
+            <div class="continent-icon">◆</div>
+            <div>
+              <div class="continent-name">América del Sur</div>
+              <div class="continent-meta">Principales centros regionales</div>
+            </div>
+          </div>
+          <div class="live-pill">En vivo</div>
+        </div>
+
+        <div class="cities">
+          <div class="city" data-zone="America/Sao_Paulo">
+            <div>
+              <div class="city-name">São Paulo</div>
+              <div class="city-zone"><span class="day-state"></span><span class="zone-label">Brasil</span></div>
+            </div>
+            <div class="time-wrap">
+              <div class="city-time">--:--:--</div>
+              <div class="city-date">--</div>
+            </div>
+          </div>
+
+          <div class="city" data-zone="America/Argentina/Buenos_Aires">
+            <div>
+              <div class="city-name">Buenos Aires</div>
+              <div class="city-zone"><span class="day-state"></span><span class="zone-label">Argentina</span></div>
+            </div>
+            <div class="time-wrap">
+              <div class="city-time">--:--:--</div>
+              <div class="city-date">--</div>
+            </div>
+          </div>
+
+          <div class="city" data-zone="America/Lima">
+            <div>
+              <div class="city-name">Lima</div>
+              <div class="city-zone"><span class="day-state"></span><span class="zone-label">Perú</span></div>
+            </div>
+            <div class="time-wrap">
+              <div class="city-time">--:--:--</div>
+              <div class="city-date">--</div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- EUROPA -->
+      <article class="continent" data-continent="europe">
+        <div class="continent-head">
+          <div class="continent-title">
+            <div class="continent-icon">✦</div>
+            <div>
+              <div class="continent-name">Europa</div>
+              <div class="continent-meta">Europa occidental y central</div>
+            </div>
+          </div>
+          <div class="live-pill">En vivo</div>
+        </div>
+
+        <div class="cities">
+          <div class="city" data-zone="Europe/London">
+            <div>
+              <div class="city-name">Londres</div>
+              <div class="city-zone"><span class="day-state"></span><span class="zone-label">Reino Unido</span></div>
+            </div>
+            <div class="time-wrap">
+              <div class="city-time">--:--:--</div>
+              <div class="city-date">--</div>
+            </div>
+          </div>
+
+          <div class="city" data-zone="Europe/Madrid">
+            <div>
+              <div class="city-name">Madrid</div>
+              <div class="city-zone"><span class="day-state"></span><span class="zone-label">España</span></div>
+            </div>
+            <div class="time-wrap">
+              <div class="city-time">--:--:--</div>
+              <div class="city-date">--</div>
+            </div>
+          </div>
+
+          <div class="city" data-zone="Europe/Berlin">
+            <div>
+              <div class="city-name">Berlín</div>
+              <div class="city-zone"><span class="day-state"></span><span class="zone-label">Alemania</span></div>
+            </div>
+            <div class="time-wrap">
+              <div class="city-time">--:--:--</div>
+              <div class="city-date">--</div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- ASIA -->
+      <article class="continent" data-continent="asia">
+        <div class="continent-head">
+          <div class="continent-title">
+            <div class="continent-icon">✺</div>
+            <div>
+              <div class="continent-name">Asia</div>
+              <div class="continent-meta">Asia oriental y occidental</div>
+            </div>
+          </div>
+          <div class="live-pill">En vivo</div>
+        </div>
+
+        <div class="cities">
+          <div class="city" data-zone="Asia/Tokyo">
+            <div>
+              <div class="city-name">Tokio</div>
+              <div class="city-zone"><span class="day-state"></span><span class="zone-label">Japón</span></div>
+            </div>
+            <div class="time-wrap">
+              <div class="city-time">--:--:--</div>
+              <div class="city-date">--</div>
+            </div>
+          </div>
+
+          <div class="city" data-zone="Asia/Shanghai">
+            <div>
+              <div class="city-name">Shanghái</div>
+              <div class="city-zone"><span class="day-state"></span><span class="zone-label">China</span></div>
+            </div>
+            <div class="time-wrap">
+              <div class="city-time">--:--:--</div>
+              <div class="city-date">--</div>
+            </div>
+          </div>
+
+          <div class="city" data-zone="Asia/Dubai">
+            <div>
+              <div class="city-name">Dubái</div>
+              <div class="city-zone"><span class="day-state"></span><span class="zone-label">Emiratos Árabes Unidos</span></div>
+            </div>
+            <div class="time-wrap">
+              <div class="city-time">--:--:--</div>
+              <div class="city-date">--</div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- ÁFRICA -->
+      <article class="continent" data-continent="africa">
+        <div class="continent-head">
+          <div class="continent-title">
+            <div class="continent-icon">●</div>
+            <div>
+              <div class="continent-name">África</div>
+              <div class="continent-meta">Norte, este y sur</div>
+            </div>
+          </div>
+          <div class="live-pill">En vivo</div>
+        </div>
+
+        <div class="cities">
+          <div class="city" data-zone="Africa/Cairo">
+            <div>
+              <div class="city-name">El Cairo</div>
+              <div class="city-zone"><span class="day-state"></span><span class="zone-label">Egipto</span></div>
+            </div>
+            <div class="time-wrap">
+              <div class="city-time">--:--:--</div>
+              <div class="city-date">--</div>
+            </div>
+          </div>
+
+          <div class="city" data-zone="Africa/Nairobi">
+            <div>
+              <div class="city-name">Nairobi</div>
+              <div class="city-zone"><span class="day-state"></span><span class="zone-label">Kenia</span></div>
+            </div>
+            <div class="time-wrap">
+              <div class="city-time">--:--:--</div>
+              <div class="city-date">--</div>
+            </div>
+          </div>
+
+          <div class="city" data-zone="Africa/Johannesburg">
+            <div>
+              <div class="city-name">Johannesburgo</div>
+              <div class="city-zone"><span class="day-state"></span><span class="zone-label">Sudáfrica</span></div>
+            </div>
+            <div class="time-wrap">
+              <div class="city-time">--:--:--</div>
+              <div class="city-date">--</div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- OCEANÍA -->
+      <article class="continent" data-continent="oceania">
+        <div class="continent-head">
+          <div class="continent-title">
+            <div class="continent-icon">≈</div>
+            <div>
+              <div class="continent-name">Oceanía</div>
+              <div class="continent-meta">Australia y Pacífico</div>
+            </div>
+          </div>
+          <div class="live-pill">En vivo</div>
+        </div>
+
+        <div class="cities">
+          <div class="city" data-zone="Australia/Sydney">
+            <div>
+              <div class="city-name">Sídney</div>
+              <div class="city-zone"><span class="day-state"></span><span class="zone-label">Australia</span></div>
+            </div>
+            <div class="time-wrap">
+              <div class="city-time">--:--:--</div>
+              <div class="city-date">--</div>
+            </div>
+          </div>
+
+          <div class="city" data-zone="Pacific/Auckland">
+            <div>
+              <div class="city-name">Auckland</div>
+              <div class="city-zone"><span class="day-state"></span><span class="zone-label">Nueva Zelanda</span></div>
+            </div>
+            <div class="time-wrap">
+              <div class="city-time">--:--:--</div>
+              <div class="city-date">--</div>
+            </div>
+          </div>
+
+          <div class="city" data-zone="Pacific/Port_Moresby">
+            <div>
+              <div class="city-name">Port Moresby</div>
+              <div class="city-zone"><span class="day-state"></span><span class="zone-label">Papúa Nueva Guinea</span></div>
+            </div>
+            <div class="time-wrap">
+              <div class="city-time">--:--:--</div>
+              <div class="city-date">--</div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+    </section>
+
+    <div class="footer-note">
+      Horarios calculados con la zona horaria oficial del navegador · Actualización cada segundo
+    </div>
+  </main>
+
+  <script>
+    const cityCards = document.querySelectorAll(".city[data-zone]");
+    const localTime = document.getElementById("localTime");
+    const localDate = document.getElementById("localDate");
+
+    const timeFormatters = new Map();
+    const dateFormatters = new Map();
+    const hourFormatters = new Map();
+    const zoneFormatters = new Map();
+
+    function formatter(map, zone, options){
+      if(!map.has(zone)){
+        map.set(zone, new Intl.DateTimeFormat("es-GT", {
+          timeZone: zone,
+          ...options
+        }));
+      }
+      return map.get(zone);
+    }
+
+    function updateClocks(){
+      const now = new Date();
+
+      // Hora local del visitante
+      localTime.textContent = new Intl.DateTimeFormat("es-GT", {
+        hour:"2-digit",
+        minute:"2-digit",
+        second:"2-digit",
+        hour12:false
+      }).format(now);
+
+      localDate.textContent = new Intl.DateTimeFormat("es-GT", {
+        weekday:"long",
+        day:"2-digit",
+        month:"long",
+        year:"numeric"
+      }).format(now);
+
+      cityCards.forEach(card => {
+        const zone = card.dataset.zone;
+
+        const time = formatter(timeFormatters, zone, {
+          hour:"2-digit",
+          minute:"2-digit",
+          second:"2-digit",
+          hour12:false
+        }).format(now);
+
+        const date = formatter(dateFormatters, zone, {
+          weekday:"short",
+          day:"2-digit",
+          month:"short"
+        }).format(now);
+
+        const hour = Number(
+          formatter(hourFormatters, zone, {
+            hour:"2-digit",
+            hour12:false
+          }).format(now)
+        );
+
+        const zoneNameParts = formatter(zoneFormatters, zone, {
+          hour:"2-digit",
+          timeZoneName:"short"
+        }).formatToParts(now);
+
+        const zoneName = zoneNameParts.find(p => p.type === "timeZoneName")?.value || "";
+
+        card.querySelector(".city-time").textContent = time;
+        card.querySelector(".city-date").textContent = `${date} · ${zoneName}`;
+
+        const dot = card.querySelector(".day-state");
+        const isNight = hour < 6 || hour >= 18;
+        dot.classList.toggle("night", isNight);
+        dot.title = isNight ? "Noche" : "Día";
+      });
+    }
+
+    updateClocks();
+    setInterval(updateClocks, 1000);
+  </script>
+</body>
+</html>
